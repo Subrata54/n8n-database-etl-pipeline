@@ -1,0 +1,345 @@
+{
+  "name": "database-etl-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        -64
+      ],
+      "id": "6d608511-ad70-44ba-9c00-917ee627fe2c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -240,
+        -64
+      ],
+      "id": "4e0f6ef7-5438-4084-a5c2-43e4ce7349f7",
+      "name": "Select rows from a table",
+      "credentials": {
+        "postgres": {
+          "id": "bO2DoYtuYLr5ZNJ8",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        -64
+      ],
+      "id": "00be6609-d92a-4026-9f37-c88d90ff0868",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "bO2DoYtuYLr5ZNJ8",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b71366d4-6fdd-49dc-b760-dc21e5c25f32",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": "=0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        96,
+        -64
+      ],
+      "id": "aa55336b-2764-4301-aeff-13daccf197e4",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.snowflake",
+      "typeVersion": 1,
+      "position": [
+        560,
+        64
+      ],
+      "id": "c61219fa-8229-43af-98fb-67176aadee68",
+      "name": "Snowflake"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        192,
+        272
+      ],
+      "id": "0c701869-2163-4183-83aa-7de27f2df9cf",
+      "name": "Update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "bO2DoYtuYLr5ZNJ8",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        272
+      ],
+      "id": "a24ab0a0-f5bd-496d-9c0c-cabea8b213af",
+      "name": "Send a message",
+      "webhookId": "28f9a1de-c48e-4f42-9acc-49f61344d444"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n\n  return {\n    json: {\n      order_id: item.json.id,\n      email: item.json.email.toLowerCase(),\n      revenue: Number(item.json.amount),\n      created_at: item.json.created_at\n    }\n  };\n\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        -160
+      ],
+      "id": "d993bc1a-8060-45bd-b7f0-1564e3eed8bc",
+      "name": "Code (Transform)"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of items) {\n\n  if (!item.json.email) {\n    throw new Error(\"Email Missing\");\n  }\n\n  if (!item.json.order_id) {\n    throw new Error(\"Order ID Missing\");\n  }\n\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -160
+      ],
+      "id": "a32a2115-4bf5-4a14-a5eb-969aa7bcc24e",
+      "name": "Code (Validate)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = [];\n\nfor (const item of items) {\n\n  for (const product of item.json.products) {\n\n    rows.push({\n      json: {\n        order_id: item.json.order_id,\n        product: product.name\n      }\n    });\n\n  }\n\n}\n\nreturn rows;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -160
+      ],
+      "id": "ef6faa34-86be-4ba1-94fe-76975bf70a16",
+      "name": "Code (Line Item Processing)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const seen = new Set();\n\nreturn items.filter(item => {\n\n  if (seen.has(item.json.order_id)) {\n    return false;\n  }\n\n  seen.add(item.json.order_id);\n  return true;\n\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        64
+      ],
+      "id": "2c135e3e-1c62-482f-a1ab-7ce4c11141cf",
+      "name": "Code (Remove Duplicates)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code (Transform)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select rows from a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snowflake": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Transform)": {
+      "main": [
+        [
+          {
+            "node": "Code (Validate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Validate)": {
+      "main": [
+        [
+          {
+            "node": "Code (Line Item Processing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Line Item Processing)": {
+      "main": [
+        [
+          {
+            "node": "Code (Remove Duplicates)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Remove Duplicates)": {
+      "main": [
+        [
+          {
+            "node": "Snowflake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "12561cae-aae9-4a4e-9cf3-0564eb793c59",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3b10042cb368d97f3c32bacf4b8b876956648499f760b54fa0eab499e1567e08"
+  },
+  "nodeGroups": [],
+  "id": "lNyLLwRreRsKaLcI",
+  "tags": []
+}
