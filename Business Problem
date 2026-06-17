@@ -1,0 +1,11 @@
+Companies often spend hours manually exporting data from databases into reporting systems.
+
+This workflow automatically:
+
+- Fetches new records
+- Cleans data
+- Validates records
+- Loads into Snowflake
+- Sends Slack notifications
+
+Reducing manual work and data errors.
